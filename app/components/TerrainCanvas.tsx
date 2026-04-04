@@ -14,6 +14,7 @@ import ReactFlow, {
   ConnectionLineType,
   ReactFlowInstance,
   NodeMouseHandler,
+  EdgeMouseHandler,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { nodeTypes } from './NodeTypes';
@@ -29,6 +30,7 @@ interface TerrainCanvasProps {
   onConnect?: OnConnect;
   onViewportChange?: (viewport: Viewport) => void;
   onNodeClick?: (node: Node) => void;
+  onEdgeClick?: (edge: Edge) => void;
   /** Height in px occupied by the bottom overlay — excluded from fitView area */
   bottomOffset?: number;
   /** Width in px occupied by the right pane — excluded from fitView area */
@@ -45,6 +47,7 @@ function TerrainCanvasInner({
   onConnect,
   onViewportChange,
   onNodeClick,
+  onEdgeClick,
   bottomOffset = 180,
   rightOffset = 0,
   pulsedNodeIds = [],
@@ -203,6 +206,11 @@ function TerrainCanvasInner({
     [onNodeClick]
   );
 
+  const handleEdgeClick: EdgeMouseHandler = useCallback(
+    (_event, edge) => { onEdgeClick?.(edge); },
+    [onEdgeClick]
+  );
+
   const handleNodeMouseEnter: NodeMouseHandler = useCallback(
     (_event, node) => { setHoveredNodeId(node.id); setHoveredEdgeId(null); },
     []
@@ -226,6 +234,7 @@ function TerrainCanvasInner({
         onNodeClick={handleNodeClick}
         onNodeMouseEnter={handleNodeMouseEnter}
         onNodeMouseLeave={handleNodeMouseLeave}
+        onEdgeClick={handleEdgeClick}
         onEdgeMouseEnter={(_event, edge) => { setHoveredEdgeId(edge.id); setHoveredNodeId(null); }}
         onEdgeMouseLeave={() => setHoveredEdgeId(null)}
         nodeTypes={nodeTypes}
@@ -237,7 +246,7 @@ function TerrainCanvasInner({
         zoomOnPinch
         nodesDraggable
         nodeDragThreshold={4}
-        nodesConnectable={!!onConnect}
+        nodesConnectable={false}
 
         proOptions={{ hideAttribution: true }}
         style={{ background: 'transparent' }}

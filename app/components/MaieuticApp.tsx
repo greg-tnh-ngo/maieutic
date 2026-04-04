@@ -321,6 +321,10 @@ function AppInner({ isDemo }: { isDemo: boolean }) {
     setSelectedNodeId(prev => prev === node.id ? null : node.id);
   }, []);
 
+  const handleEdgeClick = useCallback((edge: Edge) => {
+    handleHighlightNodes([edge.source, edge.target]);
+  }, [handleHighlightNodes]);
+
   const handleDeleteNode = useCallback((id: string) => {
     if (isDemo) return;
     setLiveNodes(prev => prev.filter(n => n.id !== id));
@@ -398,6 +402,7 @@ function AppInner({ isDemo }: { isDemo: boolean }) {
               onEdgesChange={isDemo ? demo.onEdgesChange : onLiveEdgesChange}
               onConnect={!isDemo ? onConnect : undefined}
               onNodeClick={handleNodeClick}
+              onEdgeClick={handleEdgeClick}
               bottomOffset={180}
               rightOffset={rightPaneOpen ? 320 : 0}
               pulsedNodeIds={pulsedNodeIds}
@@ -593,6 +598,7 @@ function AppInner({ isDemo }: { isDemo: boolean }) {
               edges={edges}
               onNodesChange={isDemo ? demo.onNodesChange : onLiveNodesChange}
               onEdgesChange={isDemo ? demo.onEdgesChange : onLiveEdgesChange}
+              onEdgeClick={handleEdgeClick}
               bottomOffset={0}
             />
           </div>
