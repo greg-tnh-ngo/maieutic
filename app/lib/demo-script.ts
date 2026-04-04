@@ -72,7 +72,7 @@ const POS = {
 
 // ─── Synthesis ────────────────────────────────────────────────────────────────
 
-const SYNTHESIS: SynthesisData = {
+export const SYNTHESIS: SynthesisData = {
   resolved: [
     'The father-son relationship as an irreducible origin',
     'Guilt as a form of loyalty to what was left behind',
@@ -273,11 +273,8 @@ export const DEMO_SCRIPT: DemoStep[] = [
   { action: 'add-edge', payload: { source: 'transit', target: 'leaving', type: 'dotted' }, requiresUserInput: false, autoDelay: 900 },
   { action: 'add-edge', payload: { source: 'transit', target: 'return', type: 'dotted' }, requiresUserInput: false, autoDelay: 600 },
 
-  // auto: synthesis becomes active
+  // auto: synthesis becomes active (user must click "— synthesize" to open the panel)
   { action: 'enable-synthesis', payload: null, requiresUserInput: false, autoDelay: 1400 },
-
-  // 17 — auto: synthesis panel opens
-  { action: 'show-synthesis', payload: SYNTHESIS, requiresUserInput: false, autoDelay: 2200 },
 ];
 
 export function buildInitialTerrain(): { nodes: Node[]; edges: Edge[] } {

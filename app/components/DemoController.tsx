@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Node, Edge, useNodesState, useEdgesState } from 'reactflow';
-import { DEMO_SCRIPT, SynthesisData, DemoAction } from '../lib/demo-script';
+import { DEMO_SCRIPT, SYNTHESIS, SynthesisData, DemoAction } from '../lib/demo-script';
 
 export type DemoPhase = 'intake' | 'exploration' | 'synthesis';
 
@@ -326,13 +326,10 @@ export function useDemoController(enabled: boolean) {
   const nextStep = nextIndex < DEMO_SCRIPT.length ? DEMO_SCRIPT[nextIndex] : null;
   const isReady = !isAnimating && nextStep?.requiresUserInput === true;
 
-  // finish: directly triggers show-synthesis from the last script step
+  // finish: triggers show-synthesis with the pre-written synthesis data
   const finish = useCallback(() => {
     if (!enabled) return;
-    const synthStep = DEMO_SCRIPT[DEMO_SCRIPT.length - 1];
-    if (synthStep.action === 'show-synthesis') {
-      dispatch('show-synthesis', synthStep.payload);
-    }
+    dispatch('show-synthesis', SYNTHESIS);
   }, [enabled, dispatch]);
 
   return {

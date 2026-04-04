@@ -607,7 +607,7 @@ function AppInner({ isDemo }: { isDemo: boolean }) {
             onMouseEnter={e => { if (!isLoading) (e.currentTarget as HTMLButtonElement).style.color = 'rgba(232,232,240,0.7)'; }}
             onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = 'rgba(232,232,240,0.3)'; }}
           >
-            — finish
+            — synthesize
           </button>
         </div>
       )}

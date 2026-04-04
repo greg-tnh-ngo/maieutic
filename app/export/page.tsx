@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { ReactFlowProvider, ReactFlow, Background } from 'reactflow';
 import type { Node, Edge } from 'reactflow';
 import 'reactflow/dist/style.css';
+import { nodeTypes } from '../components/NodeTypes';
+import { edgeTypes } from '../components/EdgeTypes';
 import type { ExportTemplate } from '../api/export-templates/route';
 
 // ─── Mock community templates ─────────────────────────────────────────────────
@@ -492,10 +494,25 @@ function CommunityPopup({
 // ─── Static graph ─────────────────────────────────────────────────────────────
 
 function StaticGraph({ nodes, edges }: { nodes: Node[]; edges: Edge[] }) {
+  const cleanNodes = nodes.map(n => ({
+    id: n.id,
+    type: n.type,
+    position: n.position,
+    data: n.data,
+    style: { opacity: 1 },
+  }));
+
+  const cleanEdges = edges.map(e => ({
+    ...e,
+    type: 'straight',
+  }));
+
   return (
     <ReactFlow
-      nodes={nodes}
-      edges={edges}
+      nodes={cleanNodes}
+      edges={cleanEdges}
+      nodeTypes={nodeTypes}
+      edgeTypes={edgeTypes}
       nodesDraggable={false}
       nodesConnectable={false}
       elementsSelectable={false}
