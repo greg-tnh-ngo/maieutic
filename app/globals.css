@@ -1,0 +1,100 @@
+@import "tailwindcss";
+
+/* ─── Design tokens ────────────────────────────────────────────────────────── */
+:root {
+  --bg: #0d0d0f;
+  --fg: #e8e8f0;
+  --tension: #8b2020;
+  --ghost-color: #3a3a6a;
+  --absence-color: rgba(232, 232, 240, 0.12);
+  --border-subtle: rgba(232, 232, 240, 0.07);
+  --font-question: Georgia, "Times New Roman", serif;
+  --font-ui: system-ui, -apple-system, sans-serif;
+}
+
+/* ─── Base ─────────────────────────────────────────────────────────────────── */
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-ui);
+}
+
+* { box-sizing: border-box; }
+
+/* ─── Animations ───────────────────────────────────────────────────────────── */
+@keyframes node-fade-in {
+  from { opacity: 0; transform: scale(0.75); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes ghost-pulse {
+  0%, 100% { opacity: 0.55; }
+  50%       { opacity: 0.85; }
+}
+
+@keyframes absence-pulse {
+  0%, 100% { opacity: 0.25; }
+  50%       { opacity: 0.55; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slide-in-right {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+/* ─── ReactFlow neutralize ─────────────────────────────────────────────────── */
+.react-flow { background: transparent !important; }
+.react-flow__renderer,
+.react-flow__zoompane,
+.react-flow__pane { background: transparent !important; }
+
+.react-flow__node {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  width: auto !important;
+}
+
+.react-flow__node.selected,
+.react-flow__node:focus,
+.react-flow__node:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* New node entrance */
+.react-flow__node {
+  animation: node-fade-in 0.3s ease forwards;
+}
+
+/* Ghost nodes continuous pulse */
+.node-ghost {
+  animation: ghost-pulse 2.5s ease-in-out infinite;
+}
+
+/* Absence nodes pulse */
+.node-absence {
+  animation: absence-pulse 3s ease-in-out infinite;
+}
+
+/* ─── Utility ──────────────────────────────────────────────────────────────── */
+textarea::placeholder { color: rgba(232, 232, 240, 0.15); }
+::-webkit-scrollbar { width: 0; }
+
+.cursor-blink {
+  animation: blink 1s step-start infinite;
+}

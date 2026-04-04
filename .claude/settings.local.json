@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc:*)",
+      "Bash(npm run:*)",
+      "Bash(claude doctor:*)",
+      "Skill(update-config)",
+      "Bash(find /Users/jeantrinh/maieutic -name tailwind.config.* -o -name .env*)",
+      "Bash(du -sh /Users/jeantrinh/maieutic/*)",
+      "Bash(gh pr:*)",
+      "mcp__ide__getDiagnostics"
+    ]
+  }
+}
