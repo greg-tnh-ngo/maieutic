@@ -5,7 +5,7 @@ import type { Node, Edge } from 'reactflow';
 export type DemoAction =
   | 'show-intake'
   | 'simulate-paste'
-  | 'analyze-and-ask'   // spinner 1.5s → question (self-advancing)
+  | 'analyze-and-ask'
   | 'show-question'
   | 'simulate-response'
   | 'add-nodes'
@@ -21,6 +21,10 @@ export interface DemoStep {
   action: DemoAction;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   payload: any;
+  /** If true, demo waits for L key press. Default: false (auto-fires). */
+  requiresUserInput?: boolean;
+  /** ms to wait before auto-firing after previous step completes. Default: 800. */
+  autoDelay?: number;
 }
 
 export interface SynthesisData {
@@ -60,10 +64,10 @@ const POS = {
   home:      { x: 160, y: 400 },
   father:    { x: 340, y: 120 },
   promise:   { x: 560, y: 140 },
-  debt:      { x: 330, y: 460 }, // ghost — between guilt & home
+  debt:      { x: 330, y: 460 },
   leaving:   { x: 780, y: 260 },
   belonging: { x: 940, y: 370 },
-  transit:   { x: 670, y: 430 }, // ghost — in empty zone
+  transit:   { x: 670, y: 430 },
 };
 
 // ─── Synthesis ────────────────────────────────────────────────────────────────
@@ -109,59 +113,98 @@ const SYNTHESIS: SynthesisData = {
   ],
 };
 
-// ─── Demo script — each step triggered by L key ──────────────────────────────
-// Step 0 auto-executes on mount. Steps 1+ require pressing L.
+// ─── Demo script ─────────────────────────────────────────────────────────────
+// requiresUserInput: true  → waits for L key
+// requiresUserInput: false (default) → fires automatically after autoDelay ms
 
 export const DEMO_SCRIPT: DemoStep[] = [
   // 0 — auto on mount
-  { action: 'show-intake', payload: null },
+  { action: 'show-intake', payload: null, requiresUserInput: false, autoDelay: 0 },
 
-  // 1 — L: types Lucas's text
-  { action: 'simulate-paste', payload: { text: LUCAS_TEXT } },
+  // 1 — L: user submits text
+  { action: 'simulate-paste', payload: { text: LUCAS_TEXT }, requiresUserInput: true },
 
-  // 2 — L: spinner 1.5s → first AI question appears
-  { action: 'analyze-and-ask', payload: { question: AI_QUESTION_1 } },
+  // 2 — auto: spinner → first AI question
+  { action: 'analyze-and-ask', payload: { question: AI_QUESTION_1 }, requiresUserInput: false, autoDelay: 200 },
 
-  // 3 — L: types Lucas's first response
-  { action: 'simulate-response', payload: { response: LUCAS_RESPONSE_1 } },
+  // 3 — L: user types first response
+  { action: 'simulate-response', payload: { response: LUCAS_RESPONSE_1 }, requiresUserInput: true },
 
-  // 4 — L: first three nodes appear
+  // 4 — auto: first three nodes appear
   {
     action: 'add-nodes',
     payload: {
       nodes: [
-        { id: 'return', label: 'return', type: 'concept', position: POS.return_ },
-        { id: 'guilt',  label: 'guilt',  type: 'tension', position: POS.guilt },
-        { id: 'home',   label: 'home',   type: 'concept', position: POS.home },
+        {
+          id: 'return', label: 'return', type: 'concept', position: POS.return_,
+          data: {
+            reason: 'The physical act of return as moral obligation — Marco cannot separate the journey from its weight.',
+            originQuestion: AI_QUESTION_1,
+            originResponse: LUCAS_RESPONSE_1,
+          },
+        },
+        {
+          id: 'guilt', label: 'guilt', type: 'tension', position: POS.guilt,
+          data: {
+            reason: 'Named three times without being examined. Something is being protected here.',
+            originQuestion: AI_QUESTION_1,
+            originResponse: LUCAS_RESPONSE_1,
+          },
+        },
+        {
+          id: 'home', label: 'home', type: 'concept', position: POS.home,
+          data: {
+            reason: "The house belongs to someone else now. Marco's \"home\" is a place that no longer exists.",
+            originQuestion: AI_QUESTION_1,
+            originResponse: LUCAS_RESPONSE_1,
+          },
+        },
       ],
     },
+    requiresUserInput: false,
+    autoDelay: 700,
   },
 
-  // 5 — L: second AI question
-  { action: 'show-question', payload: { question: AI_QUESTION_2 } },
+  // 5 — auto: second AI question
+  { action: 'show-question', payload: { question: AI_QUESTION_2 }, requiresUserInput: false, autoDelay: 1400 },
 
-  // 6 — L: types Lucas's second response
-  { action: 'simulate-response', payload: { response: LUCAS_RESPONSE_2 } },
+  // 6 — L: user types second response
+  { action: 'simulate-response', payload: { response: LUCAS_RESPONSE_2 }, requiresUserInput: true },
 
-  // 7 — L: second wave of nodes
+  // 7 — auto: second wave of nodes
   {
     action: 'add-nodes',
     payload: {
       nodes: [
-        { id: 'father',  label: 'father',  type: 'concept', position: POS.father },
+        {
+          id: 'father', label: 'father', type: 'concept', position: POS.father,
+          data: {
+            reason: 'Absent but structuring everything. The dead father is the true addressee of the return.',
+            originQuestion: AI_QUESTION_2,
+            originResponse: LUCAS_RESPONSE_2,
+          },
+        },
         { id: 'promise', label: 'promise', type: 'tension', position: POS.promise },
         { id: 'leaving', label: 'leaving', type: 'concept', position: POS.leaving },
       ],
     },
+    requiresUserInput: false,
+    autoDelay: 700,
   },
 
-  // 8 — L: guilt → father edge
-  { action: 'add-edge', payload: { source: 'guilt', target: 'father', type: 'solid' } },
+  // 8 — auto: guilt → father edge
+  { action: 'add-edge', payload: { source: 'guilt', target: 'father', type: 'solid' }, requiresUserInput: false, autoDelay: 900 },
 
-  // 9 — L: return ↔ leaving contradiction
-  { action: 'add-edge', payload: { source: 'return', target: 'leaving', type: 'contradiction' } },
+  // 9 — auto: return ↔ leaving contradiction
+  { action: 'add-edge', payload: { source: 'return', target: 'leaving', type: 'contradiction' }, requiresUserInput: false, autoDelay: 700 },
 
-  // 10 — L: ghost node "debt" appears
+  // 10–13 — auto: edges connecting home and promise (all nodes now exist)
+  { action: 'add-edge', payload: { source: 'home', target: 'return', type: 'dotted' }, requiresUserInput: false, autoDelay: 700 },
+  { action: 'add-edge', payload: { source: 'home', target: 'guilt', type: 'dotted' }, requiresUserInput: false, autoDelay: 600 },
+  { action: 'add-edge', payload: { source: 'promise', target: 'father', type: 'dotted' }, requiresUserInput: false, autoDelay: 600 },
+  { action: 'add-edge', payload: { source: 'promise', target: 'return', type: 'contradiction' }, requiresUserInput: false, autoDelay: 700 },
+
+  // 14 — auto: ghost node "debt"
   {
     action: 'add-ghost-node',
     payload: {
@@ -170,9 +213,15 @@ export const DEMO_SCRIPT: DemoStep[] = [
       position: POS.debt,
       note: 'This word appeared three times without being defined. Owed to whom exactly?',
     },
+    requiresUserInput: false,
+    autoDelay: 1100,
   },
 
-  // 11 — L: guilt node moves (user simulated)
+  // debt edges — debt ghost now exists
+  { action: 'add-edge', payload: { source: 'debt', target: 'guilt', type: 'solid' }, requiresUserInput: false, autoDelay: 800 },
+  { action: 'add-edge', payload: { source: 'debt', target: 'home', type: 'dotted' }, requiresUserInput: false, autoDelay: 600 },
+
+  // auto: guilt node moves
   {
     action: 'animate-node-move',
     payload: {
@@ -180,9 +229,11 @@ export const DEMO_SCRIPT: DemoStep[] = [
       from: POS.guilt,
       to: { x: POS.guilt.x + 80, y: POS.guilt.y - 60 },
     },
+    requiresUserInput: false,
+    autoDelay: 1200,
   },
 
-  // 12 — L: second cluster — belonging
+  // 12 — auto: second cluster — belonging
   {
     action: 'add-nodes',
     payload: {
@@ -190,18 +241,22 @@ export const DEMO_SCRIPT: DemoStep[] = [
         { id: 'belonging', label: 'belonging', type: 'concept', position: POS.belonging },
       ],
     },
+    requiresUserInput: false,
+    autoDelay: 1000,
   },
 
-  // 13 — L: leaving → belonging dotted
-  { action: 'add-edge', payload: { source: 'leaving', target: 'belonging', type: 'dotted' } },
+  // 13 — auto: leaving → belonging dotted
+  { action: 'add-edge', payload: { source: 'leaving', target: 'belonging', type: 'dotted' }, requiresUserInput: false, autoDelay: 800 },
 
-  // 14 — L: empty zone pulses
+  // 14 — auto: empty zone pulses → button appears
   {
     action: 'pulse-empty-zone',
     payload: { position: { x: 660, y: 320 }, label: 'unexplored zone' },
+    requiresUserInput: false,
+    autoDelay: 1400,
   },
 
-  // 15 — L: ghost node "transit" in empty zone
+  // 15 — auto: ghost node "transit"
   {
     action: 'add-ghost-node',
     payload: {
@@ -210,13 +265,19 @@ export const DEMO_SCRIPT: DemoStep[] = [
       position: POS.transit,
       note: 'Between the two clusters — neither here nor there. The state between leaving and returning.',
     },
+    requiresUserInput: false,
+    autoDelay: 1200,
   },
 
-  // 16 — L: synthesis button becomes active
-  { action: 'enable-synthesis', payload: null },
+  // transit edges — transit ghost now exists
+  { action: 'add-edge', payload: { source: 'transit', target: 'leaving', type: 'dotted' }, requiresUserInput: false, autoDelay: 900 },
+  { action: 'add-edge', payload: { source: 'transit', target: 'return', type: 'dotted' }, requiresUserInput: false, autoDelay: 600 },
 
-  // 17 — L: synthesis panel opens
-  { action: 'show-synthesis', payload: SYNTHESIS },
+  // auto: synthesis becomes active
+  { action: 'enable-synthesis', payload: null, requiresUserInput: false, autoDelay: 1400 },
+
+  // 17 — auto: synthesis panel opens
+  { action: 'show-synthesis', payload: SYNTHESIS, requiresUserInput: false, autoDelay: 2200 },
 ];
 
 export function buildInitialTerrain(): { nodes: Node[]; edges: Edge[] } {

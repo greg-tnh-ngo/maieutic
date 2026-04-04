@@ -16,6 +16,13 @@ interface DemoState {
   showSpinner: boolean;
   synthesisData: SynthesisData | null;
   synthesisEnabled: boolean;
+  showUnexploredButton: boolean;
+  unexploredZoneLabel: string;
+}
+
+interface TypeResult {
+  cancel: () => void;
+  complete: () => void;
 }
 
 function typeText(
@@ -23,17 +30,24 @@ function typeText(
   onUpdate: (partial: string) => void,
   onDone: () => void,
   msPerChar = 22
-): () => void {
+): TypeResult {
   let i = 0;
+  let finished = false;
   const id = setInterval(() => {
     i++;
     onUpdate(text.slice(0, i));
     if (i >= text.length) {
       clearInterval(id);
-      onDone();
+      if (!finished) { finished = true; onDone(); }
     }
   }, msPerChar);
-  return () => clearInterval(id);
+  return {
+    cancel: () => clearInterval(id),
+    complete: () => {
+      clearInterval(id);
+      if (!finished) { finished = true; onUpdate(text); onDone(); }
+    },
+  };
 }
 
 function makeEdge(
@@ -46,7 +60,7 @@ function makeEdge(
     source,
     target,
     type: 'straight',
-    data: { edgeKind: kind },
+    data: { edgeKind: kind, createdAt: Date.now() },
     style: {
       stroke: kind === 'contradiction' ? '#8b2020' : 'rgba(232,232,240,0.3)',
       strokeWidth: 1,
@@ -61,6 +75,7 @@ export function useDemoController(enabled: boolean) {
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
   const [stepIndex, setStepIndex] = useState(-1);
+  const stepIndexRef = useRef(-1);
   const [isAnimating, setIsAnimating] = useState(false);
   const [state, setState] = useState<DemoState>({
     phase: 'intake',
@@ -72,13 +87,20 @@ export function useDemoController(enabled: boolean) {
     showSpinner: false,
     synthesisData: null,
     synthesisEnabled: false,
+    showUnexploredButton: false,
+    unexploredZoneLabel: '',
   });
 
+  // Keep ref in sync for use in callbacks without stale closures
+  useEffect(() => { stepIndexRef.current = stepIndex; }, [stepIndex]);
+
   const cleanups = useRef<Array<() => void>>([]);
+  const completes = useRef<Array<() => void>>([]);
 
   const dispatch = useCallback((action: DemoAction, payload: unknown) => {
     cleanups.current.forEach(fn => fn());
     cleanups.current = [];
+    completes.current = [];
 
     const p = (payload ?? {}) as Record<string, unknown>;
 
@@ -90,20 +112,21 @@ export function useDemoController(enabled: boolean) {
       case 'simulate-paste': {
         setIsAnimating(true);
         setState(prev => ({ ...prev, isTypingPaste: true, typedPasteText: '' }));
-        const cancel = typeText(
+        const { cancel, complete } = typeText(
           p.text as string,
           text => setState(prev => ({ ...prev, typedPasteText: text })),
           () => { setState(prev => ({ ...prev, isTypingPaste: false })); setIsAnimating(false); },
           16
         );
         cleanups.current.push(cancel);
+        completes.current.push(complete);
         break;
       }
 
       case 'analyze-and-ask': {
         setIsAnimating(true);
         setState(prev => ({ ...prev, showSpinner: true, phase: 'exploration' }));
-        const tid = setTimeout(() => {
+        const completeAnalyze = () => {
           setState(prev => ({
             ...prev,
             showSpinner: false,
@@ -112,8 +135,10 @@ export function useDemoController(enabled: boolean) {
             isTypingResponse: false,
           }));
           setIsAnimating(false);
-        }, 1500);
+        };
+        const tid = setTimeout(completeAnalyze, 1500);
         cleanups.current.push(() => clearTimeout(tid));
+        completes.current.push(() => { clearTimeout(tid); completeAnalyze(); });
         break;
       }
 
@@ -130,13 +155,14 @@ export function useDemoController(enabled: boolean) {
       case 'simulate-response': {
         setIsAnimating(true);
         setState(prev => ({ ...prev, isTypingResponse: true, simulatedResponse: '' }));
-        const cancel = typeText(
+        const { cancel, complete } = typeText(
           p.response as string,
           text => setState(prev => ({ ...prev, simulatedResponse: text })),
           () => { setState(prev => ({ ...prev, isTypingResponse: false })); setIsAnimating(false); },
           26
         );
         cleanups.current.push(cancel);
+        completes.current.push(complete);
         break;
       }
 
@@ -146,7 +172,9 @@ export function useDemoController(enabled: boolean) {
           label: string;
           type: string;
           position: { x: number; y: number };
+          data?: Record<string, unknown>;
         }>);
+        const now = Date.now();
         setNodes(prev => {
           const existingIds = new Set(prev.map(n => n.id));
           const newNodes: Node[] = incoming
@@ -155,7 +183,7 @@ export function useDemoController(enabled: boolean) {
               id: n.id,
               type: n.type,
               position: n.position,
-              data: { label: n.label },
+              data: { label: n.label, createdAt: now, ...(n.data ?? {}) },
             }));
           return [...prev, ...newNodes];
         });
@@ -175,11 +203,12 @@ export function useDemoController(enabled: boolean) {
       }
 
       case 'add-ghost-node': {
+        const now = Date.now();
         const ghost: Node = {
           id: p.id as string,
           type: 'ghost',
           position: p.position as { x: number; y: number },
-          data: { label: p.label, note: p.note },
+          data: { label: p.label, note: p.note, createdAt: now },
         };
         setNodes(prev =>
           prev.find(n => n.id === ghost.id) ? prev : [...prev, ghost]
@@ -194,39 +223,41 @@ export function useDemoController(enabled: boolean) {
         const nodeId = p.nodeId as string;
         const start = performance.now();
         const duration = 800;
+        let rafId: number;
+        let completed = false;
+
         const step = (now: number) => {
           const t = Math.min((now - start) / duration, 1);
           const ease = 1 - Math.pow(1 - t, 3);
           setNodes(prev =>
             prev.map(n =>
               n.id === nodeId
-                ? {
-                    ...n,
-                    position: {
-                      x: from.x + (to.x - from.x) * ease,
-                      y: from.y + (to.y - from.y) * ease,
-                    },
-                  }
+                ? { ...n, position: { x: from.x + (to.x - from.x) * ease, y: from.y + (to.y - from.y) * ease } }
                 : n
             )
           );
-          if (t < 1) requestAnimationFrame(step);
-          else setIsAnimating(false);
+          if (t < 1) { rafId = requestAnimationFrame(step); }
+          else if (!completed) { completed = true; setIsAnimating(false); }
         };
-        requestAnimationFrame(step);
+        rafId = requestAnimationFrame(step);
+        cleanups.current.push(() => cancelAnimationFrame(rafId));
+        completes.current.push(() => {
+          cancelAnimationFrame(rafId);
+          if (!completed) {
+            completed = true;
+            setNodes(prev => prev.map(n => n.id === nodeId ? { ...n, position: to } : n));
+            setIsAnimating(false);
+          }
+        });
         break;
       }
 
       case 'pulse-empty-zone': {
-        const absence: Node = {
-          id: 'absence-zone',
-          type: 'absence',
-          position: p.position as { x: number; y: number },
-          data: { label: p.label as string },
-        };
-        setNodes(prev =>
-          prev.find(n => n.id === 'absence-zone') ? prev : [...prev, absence]
-        );
+        setState(prev => ({
+          ...prev,
+          showUnexploredButton: true,
+          unexploredZoneLabel: p.label as string,
+        }));
         break;
       }
 
@@ -244,24 +275,65 @@ export function useDemoController(enabled: boolean) {
     }
   }, [setNodes, setEdges]);
 
+  // Dispatch current step when stepIndex changes
   useEffect(() => {
     if (stepIndex < 0 || stepIndex >= DEMO_SCRIPT.length) return;
     const step = DEMO_SCRIPT[stepIndex];
     dispatch(step.action, step.payload);
   }, [stepIndex, dispatch]);
 
+  // Auto-advance non-user-input steps
+  useEffect(() => {
+    if (!enabled || stepIndex < 0) return;
+    if (isAnimating) return; // wait for current animation to complete
+    const nextIndex = stepIndex + 1;
+    if (nextIndex >= DEMO_SCRIPT.length) return;
+    const nextStep = DEMO_SCRIPT[nextIndex];
+    if (nextStep.requiresUserInput) return; // wait for L key
+    const delay = nextStep.autoDelay ?? 800;
+    const tid = setTimeout(() => {
+      setStepIndex(nextIndex);
+    }, delay);
+    return () => clearTimeout(tid);
+  }, [isAnimating, stepIndex, enabled]);
+
+  // Start demo on mount
   useEffect(() => {
     if (enabled) setStepIndex(0);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const advance = useCallback(() => {
-    if (isAnimating || !enabled) return;
-    setStepIndex(prev => {
-      if (prev >= DEMO_SCRIPT.length - 1) return prev;
-      return prev + 1;
-    });
+    if (!enabled) return;
+    // If animating: complete animation immediately (skip to end)
+    if (isAnimating) {
+      completes.current.forEach(fn => fn());
+      completes.current = [];
+      cleanups.current.forEach(fn => fn());
+      cleanups.current = [];
+      return;
+    }
+    // Only manually advance when next step requires user input
+    // (non-user steps are handled by auto-advance above)
+    const nextIdx = stepIndexRef.current + 1;
+    if (nextIdx >= DEMO_SCRIPT.length) return;
+    if (!DEMO_SCRIPT[nextIdx].requiresUserInput) return;
+    setStepIndex(nextIdx);
   }, [isAnimating, enabled]);
+
+  // isReady: true when waiting for user L press (next step requiresUserInput)
+  const nextIndex = stepIndex + 1;
+  const nextStep = nextIndex < DEMO_SCRIPT.length ? DEMO_SCRIPT[nextIndex] : null;
+  const isReady = !isAnimating && nextStep?.requiresUserInput === true;
+
+  // finish: directly triggers show-synthesis from the last script step
+  const finish = useCallback(() => {
+    if (!enabled) return;
+    const synthStep = DEMO_SCRIPT[DEMO_SCRIPT.length - 1];
+    if (synthStep.action === 'show-synthesis') {
+      dispatch('show-synthesis', synthStep.payload);
+    }
+  }, [enabled, dispatch]);
 
   return {
     ...state,
@@ -270,7 +342,9 @@ export function useDemoController(enabled: boolean) {
     onNodesChange,
     onEdgesChange,
     advance,
-    isReady: !isAnimating && stepIndex < DEMO_SCRIPT.length - 1,
+    finish,
+    isAnimating,
+    isReady,
     stepIndex,
     totalSteps: DEMO_SCRIPT.length,
   };

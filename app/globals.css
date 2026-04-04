@@ -25,8 +25,23 @@ html, body {
 
 /* ─── Animations ───────────────────────────────────────────────────────────── */
 @keyframes node-fade-in {
-  from { opacity: 0; transform: scale(0.75); }
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Node inner spring-appear — applied to .node-inner, NOT .react-flow__node */
+@keyframes node-appear {
+  from { opacity: 0; transform: scale(0.6); }
   to   { opacity: 1; transform: scale(1); }
+}
+
+.node-inner {
+  animation: node-appear 400ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* Ghost nodes: extra hesitation delay */
+.node-ghost .node-inner {
+  animation-delay: 80ms;
 }
 
 @keyframes ghost-pulse {
@@ -89,6 +104,30 @@ html, body {
 /* Absence nodes pulse */
 .node-absence {
   animation: absence-pulse 3s ease-in-out infinite;
+}
+
+/* ─── Hover scaling — applied to inner div via className ──────────────────── */
+.node-hovered .node-inner {
+  transform: scale(1.08);
+  transition: transform 200ms ease;
+}
+
+/* ─── Node pulse (history highlight) ──────────────────────────────────────── */
+@keyframes node-pulse {
+  0%   { opacity: 1; }
+  25%  { opacity: 0.3; }
+  50%  { opacity: 1; }
+  75%  { opacity: 0.3; }
+  100% { opacity: 1; }
+}
+.node-pulsing .node-inner {
+  animation: node-pulse 1s ease;
+}
+
+/* ─── Panel slide-in ───────────────────────────────────────────────────────── */
+@keyframes slide-in-left {
+  from { transform: translateX(-100%); opacity: 0; }
+  to   { transform: translateX(0);     opacity: 1; }
 }
 
 /* ─── Utility ──────────────────────────────────────────────────────────────── */

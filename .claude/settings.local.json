@@ -8,7 +8,8 @@
       "Bash(find /Users/jeantrinh/maieutic -name tailwind.config.* -o -name .env*)",
       "Bash(du -sh /Users/jeantrinh/maieutic/*)",
       "Bash(gh pr:*)",
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "Bash(npx next:*)"
     ]
   }
 }
