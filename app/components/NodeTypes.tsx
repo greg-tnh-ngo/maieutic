@@ -3,18 +3,25 @@
 import { memo } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 
-const InvisibleHandles = () => (
+// Handles positioned at the visual circle center: 6px top-padding + 7px half-circle = 13px from top
+const CenterHandles = () => (
   <>
-    <Handle type="target" position={Position.Top}    style={{ opacity: 0, pointerEvents: 'none' }} />
-    <Handle type="source" position={Position.Bottom} style={{ opacity: 0, pointerEvents: 'none' }} />
-    <Handle type="target" position={Position.Left}   style={{ opacity: 0, pointerEvents: 'none' }} />
-    <Handle type="source" position={Position.Right}  style={{ opacity: 0, pointerEvents: 'none' }} />
+    <Handle
+      type="target"
+      position={Position.Top}
+      style={{ top: 13, transform: 'translate(-50%, -50%)', opacity: 0, pointerEvents: 'none' }}
+    />
+    <Handle
+      type="source"
+      position={Position.Top}
+      style={{ top: 13, transform: 'translate(-50%, -50%)', opacity: 0, pointerEvents: 'none' }}
+    />
   </>
 );
 
 export const ConceptNode = memo(({ data }: NodeProps) => (
   <div>
-    <InvisibleHandles />
+    <CenterHandles />
     <div className="node-inner" style={{
       display: 'flex',
       flexDirection: 'column',
@@ -50,7 +57,7 @@ ConceptNode.displayName = 'ConceptNode';
 
 export const TensionNode = memo(({ data }: NodeProps) => (
   <div>
-    <InvisibleHandles />
+    <CenterHandles />
     <div className="node-inner" style={{
       display: 'flex',
       flexDirection: 'column',
@@ -88,7 +95,7 @@ TensionNode.displayName = 'TensionNode';
 export const GhostNode = memo(({ data }: NodeProps) => (
   // note: .node-ghost class triggers ghost-pulse animation and delayed node-appear
   <div className="node-ghost">
-    <InvisibleHandles />
+    <CenterHandles />
     <div className="node-inner" style={{
       display: 'flex',
       flexDirection: 'column',

@@ -236,6 +236,7 @@ function TerrainCanvasInner({
         zoomOnScroll={false}
         zoomOnPinch
         nodesDraggable
+        nodeDragThreshold={4}
         nodesConnectable={!!onConnect}
 
         proOptions={{ hideAttribution: true }}
