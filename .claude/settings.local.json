@@ -9,9 +9,7 @@
       "Bash(du -sh /Users/jeantrinh/maieutic/*)",
       "Bash(gh pr:*)",
       "mcp__ide__getDiagnostics",
-      "Bash(npx next:*)",
-      "Bash(brew install:*)",
-      "Bash(gh:*)"
+      "Bash(npx next:*)"
     ]
   }
 }
