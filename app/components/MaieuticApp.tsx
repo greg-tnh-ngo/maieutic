@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Node, Edge, useNodesState, useEdgesState, OnConnect, addEdge, ReactFlowProvider } from 'reactflow';
 import { useDemoController } from './DemoController';
 import TerrainCanvas from './TerrainCanvas';
@@ -8,7 +9,7 @@ import IntakeZone from './IntakeZone';
 import SynthesisPanel from './SynthesisPanel';
 import NodeDetailPane from './NodeDetailPane';
 import HistoryPanel, { HistoryEntry } from './HistoryPanel';
-import { SynthesisData } from '../lib/demo-script';
+import { SynthesisData, LUCAS_RESPONSE_1, LUCAS_RESPONSE_2, AI_QUESTION_1, AI_QUESTION_2 } from '../lib/demo-script';
 import { spreadNodes, findFreePosition } from '../lib/terrain-utils';
 
 type Phase = 'intake' | 'exploration' | 'synthesis';
@@ -40,6 +41,7 @@ const TOP_BTN: React.CSSProperties = {
 };
 
 function AppInner({ isDemo }: { isDemo: boolean }) {
+  const router = useRouter();
   const demo = useDemoController(isDemo);
 
   // ── Demo L-key: skip animation or advance ──────────────────────────────────
@@ -365,6 +367,26 @@ function AppInner({ isDemo }: { isDemo: boolean }) {
     }
   }, [isDemo, demo, liveNodes, liveEdges, liveTranscript, setLiveNodes]);
 
+  // ── Export ─────────────────────────────────────────────────────────────────
+  const handleExport = useCallback(() => {
+    const transcript = isDemo
+      ? [
+          { role: 'assistant', content: AI_QUESTION_1 },
+          { role: 'user', content: LUCAS_RESPONSE_1 },
+          { role: 'assistant', content: AI_QUESTION_2 },
+          { role: 'user', content: LUCAS_RESPONSE_2 },
+        ]
+      : liveTranscript;
+    sessionStorage.setItem('maieutic_export', JSON.stringify({
+      nodes,
+      edges,
+      synthesis: synthesisData,
+      transcript,
+      isDemo,
+    }));
+    router.push('/export');
+  }, [isDemo, nodes, edges, synthesisData, liveTranscript, router]);
+
   // ── Unexplored zone button (demo: from showUnexploredButton state) ──────────
   const showUnexploredBtn = isDemo ? demo.showUnexploredButton : false;
 
@@ -597,7 +619,23 @@ function AppInner({ isDemo }: { isDemo: boolean }) {
             />
           </div>
           <div style={{ width: '40%', height: '100%' }}>
-            <SynthesisPanel data={synthesisData} isDemo={isDemo} />
+            <SynthesisPanel
+              data={synthesisData}
+              isDemo={isDemo}
+              onExport={handleExport}
+              stats={{
+                questionsAnswered: isDemo
+                  ? 2
+                  : liveTranscript.filter(e => e.role === 'user').length,
+                nodeCount: nodes.length,
+                edgeCount: edges.length,
+                wordCount: isDemo
+                  ? [...LUCAS_RESPONSE_1.trim().split(/\s+/), ...LUCAS_RESPONSE_2.trim().split(/\s+/)].filter(Boolean).length
+                  : liveTranscript
+                      .filter(e => e.role === 'user')
+                      .reduce((sum, e) => sum + e.content.trim().split(/\s+/).filter(Boolean).length, 0),
+              }}
+            />
           </div>
         </div>
       )}
