@@ -9,7 +9,10 @@
       "Bash(du -sh /Users/jeantrinh/maieutic/*)",
       "Bash(gh pr:*)",
       "mcp__ide__getDiagnostics",
-      "Bash(npx next:*)"
+      "Bash(npx next:*)",
+      "Bash(echo:*)",
+      "Bash(bash -i -c 'echo \"\"$PS1\"\"')",
+      "Bash(zsh -i -c 'echo \"\"$PS1\"\"')"
     ]
   }
 }
